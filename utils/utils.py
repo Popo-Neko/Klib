@@ -1,3 +1,5 @@
+import io
+import chardet
 import pandas as pd
 import numpy as np
 import os
@@ -9,6 +11,10 @@ from sklearn.model_selection import train_test_split
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from models.utils import Tokenizer, TextClassificationDataset, train_val_split, get_loader
+from transformers import BertTokenizer
+from sklearn.model_selection import train_test_split
+import torch
+from torch.utils.data import DataLoader
 
 
 def count_tags(df, count):
@@ -223,3 +229,84 @@ def inference(test_dataset, model, checkpoint_file_path, batch_size, shuffle=Tru
         return predictions
     else:
         raise ValueError("mode should be 'acc' or 'output' ! ")
+
+
+class Data:
+    def __init__(self, file, target_column='combinedText'):
+        if type(file) == str:
+            with open(file, mode='rb') as f:
+                content = f.read()
+            result = chardet.detect(content)
+            df = pd.read_csv(file, encoding="ansi" if result['encoding'][:2] == "GB" else result['encoding'])
+        elif type(file) == bytes:
+            result = chardet.detect(file)
+            file = io.BytesIO(file)
+            df = pd.read_csv(file, encoding="ansi" if result['encoding'][:2] == "GB" else result['encoding'])
+        else:
+            raise TypeError("file parameter must be a path of a data table or a bytes object of data table")
+        self.df = df
+        self.target_column = target_column
+
+    def check(self):
+        a = 0
+        l1 = ['type', 'subtitle', 'label']
+        for _ in l1:
+            if _ in self.df.columns:
+                a += 1
+        if a == 0:
+            return 'unclassified'
+        elif a == 1:
+            return 'type'
+        elif a == 2:
+            return 'type-subtitle'
+        elif a == 3:
+            return 'type-subtitle-label'
+        else:
+            raise IndexError("too much classification columns, "
+                             "check your file to make sure if duplicated column names exists")
+
+
+def train_val_split(in_features, labels, test_size=0.2, random_seed=123):
+    """
+    retrun train_X, val_X, train_y, val_y
+    :param in_features: features
+    :param labels: labels
+    :param test_size: val/(val+train) ratio default=0.2
+    :param random_seed: random_seed
+    :return:
+    """
+    train_texts, val_texts, train_labels, val_labels = train_test_split(in_features,
+                                                                        labels,
+                                                                        test_size=0.2,
+                                                                        random_state=123)
+    return train_texts, val_texts, train_labels, val_labels
+
+
+class Tokenizer:
+    def __init__(self, max_length=512):
+        self.tokenizer = BertTokenizer.from_pretrained("bert-base-chinese")
+        assert max_length <= 512
+        self.max_length = max_length
+
+    def __call__(self, text, truncation=True, padding=True):
+        encodings = self.tokenizer(text, truncation=True, padding=True, max_length=self.max_length)
+        return encodings
+
+
+class TextClassificationDataset(torch.utils.data.Dataset):
+    def __init__(self, encodings, labels):
+        self.encodings = encodings
+        self.labels = labels
+
+    def __getitem__(self, idx):
+        item = {key: torch.tensor(val[idx]) for key, val in self.encodings.items()}
+        item['labels'] = torch.tensor(self.labels[idx])
+        return item
+
+    def __len__(self):
+        return len(self.labels)
+
+
+def get_loader(dataset, batch_size=16, shuffle=True):
+    loader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
+    return loader

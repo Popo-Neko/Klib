@@ -1,13 +1,5 @@
-from models.model import Model
-from models.utils import Tokenizer, TextClassificationDataset, train_val_split, get_loader
+from utils.utils import Tokenizer, TextClassificationDataset, train_val_split
 import pandas as pd
-import torch
-from torch.utils.tensorboard import SummaryWriter
-from utils import accuracy, load_checkpoint
-from tqdm import tqdm
-import os
-import time
-
 
 # 1. 准备数据集
 train_data_path = "../data/train_data4type.csv"

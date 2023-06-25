@@ -6,7 +6,7 @@ import gradio as gr
 import pandas as pd
 from jinja2 import Template
 
-from scripts.inference4type import classification4type
+from scripts.classification import classification4type
 
 
 def dashboard(file):
@@ -21,7 +21,7 @@ def dashboard(file):
         raise TypeError("Input to create a dashborad html must be csv file path or csv file in bytes type")
     df = pd.read_csv(file, encoding="ansi" if result['encoding'][:2] == "GB" else result['encoding'])
     df_html = df.to_html(index=False, max_rows=10, max_cols=5, col_space=100, table_id="data-preview")
-    with open("./temp_files/DashBoardPreview.html", 'r') as template:
+    with open("../temp_files/DashBoardPreview.html", 'r') as template:
         template_content = template.read()
     template = Template(template_content)
     html_output = template.render(table=df_html)
@@ -36,7 +36,7 @@ def get_dropdown_list(path):
 def get_html_table(data_path, index=False, max_rows=5, max_cols=5, col_space=100, table_id="data-preview",
                    template_path="./temp_files/DashBoardPreview.html"):
     assert data_path[-3:] == "csv", "data for table must be a csv file"
-    df = pd.read_csv("./temp_files/example_table.csv")
+    df = pd.read_csv("../temp_files/example_table.csv")
     df_html = df.to_html(index=index, max_rows=max_rows, max_cols=max_cols,
                          col_space=col_space, table_id=table_id)
     with open(template_path, 'r') as template:
@@ -56,8 +56,8 @@ def create_file_input(file_component, dropdown_list):
     return file_input_component
 
 
-dropdown_list = get_dropdown_list(r"./models/checkpoints")
-example_html_table = get_html_table(r"./temp_files/example_table.csv")
+dropdown_list = get_dropdown_list(r"../models/checkpoints")
+example_html_table = get_html_table(r"../temp_files/example_table.csv")
 
 with gr.Blocks(css=r'./temp_files/table.css') as demo:
     with gr.Tab(label="classification4type"):
