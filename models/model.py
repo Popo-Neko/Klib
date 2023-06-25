@@ -1,7 +1,7 @@
 import torch
 from transformers import BertForSequenceClassification
 
-
+# hjjhg
 class Model(torch.nn.Module):
     """
     a model from pre-trained "bert-base-chinese"
